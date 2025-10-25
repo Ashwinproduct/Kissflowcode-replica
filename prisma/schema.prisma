@@ -1,0 +1,116 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String
+  role          String    @default("user") // user, admin, manager
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  forms         Form[]
+  workflows     Workflow[]
+  approvals     Approval[]
+  submissions   FormSubmission[]
+}
+
+// Form Builder Models
+model Form {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  fields      String   // JSON string of form fields
+  status      String   @default("draft") // draft, published, archived
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String
+
+  creator     User     @relation(fields: [createdBy], references: [id])
+  submissions FormSubmission[]
+  workflows   Workflow[]
+}
+
+// Form Submissions
+model FormSubmission {
+  id          String   @id @default(cuid())
+  formId      String
+  data        String   // JSON string of submitted data
+  status      String   @default("submitted") // submitted, processing, completed
+  submittedAt DateTime @default(now())
+  submittedBy String
+
+  form        Form     @relation(fields: [formId], references: [id])
+  submitter   User     @relation(fields: [submittedBy], references: [id])
+  approvals   Approval[]
+}
+
+// Workflow Models
+model Workflow {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  formId      String?  // Optional: linked to a form trigger
+  nodes       String   // JSON string of workflow nodes
+  edges       String   // JSON string of workflow connections
+  status      String   @default("active") // active, inactive, archived
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String
+
+  creator     User     @relation(fields: [createdBy], references: [id])
+  form        Form?    @relation(fields: [formId], references: [id])
+  executions  WorkflowExecution[]
+}
+
+// Workflow Execution History
+model WorkflowExecution {
+  id          String   @id @default(cuid())
+  workflowId  String
+  status      String   @default("running") // running, completed, failed
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+  logs        String?  // JSON string of execution logs
+
+  workflow    Workflow @relation(fields: [workflowId], references: [id])
+}
+
+// Approval System
+model Approval {
+  id              String   @id @default(cuid())
+  title           String
+  description     String?
+  submissionId    String?  // Optional: linked to form submission
+  requestedBy     String
+  approverId      String?
+  status          String   @default("pending") // pending, approved, rejected
+  comments        String?
+  requestedAt     DateTime @default(now())
+  respondedAt     DateTime?
+  level           Int      @default(1) // For multi-level approvals
+
+  requester       User     @relation(fields: [requestedBy], references: [id])
+  submission      FormSubmission? @relation(fields: [submissionId], references: [id])
+}
+
+// Audit Log
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String
+  action      String   // create, update, delete, approve, reject
+  entity      String   // form, workflow, approval
+  entityId    String
+  details     String?  // JSON string of change details
+  timestamp   DateTime @default(now())
+}

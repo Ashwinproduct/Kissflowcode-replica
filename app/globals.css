@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --primary: #667eea;
+    --primary-dark: #5a67d8;
+    --sidebar-bg: #2d3748;
+    --sidebar-hover: #4a5568;
+  }
+}
+
+body {
+  @apply bg-gray-50 text-gray-900;
+}
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
